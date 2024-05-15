@@ -1,7 +1,7 @@
 const canvas = document.getElementById("canvas");
 let ctx = canvas.getContext("2d");
 
-//Obtiene las dimensiones de la pantalla actual
+// Obtiene las dimensiones de la pantalla actual
 const window_height = window.innerHeight;
 const window_width = window.innerWidth;
 
@@ -9,6 +9,22 @@ canvas.height = window_height;
 canvas.width = window_width;
 
 canvas.style.background = "#ff8";
+
+// Variable para almacenar las coordenadas del mouse
+let mouseX = 0;
+let mouseY = 0;
+
+// Variable para almacenar la posición del clic
+let clickX = 0;
+let clickY = 0;
+
+// Variable para determinar si se hizo clic
+let isMouseClicked = false;
+
+// Variable para el cronómetro
+let startTime = Date.now();
+let elapsedTime = 0;
+let timerInterval;
 
 class Circle {
     constructor(x, y, radius, color, text, speed) {
@@ -20,7 +36,7 @@ class Circle {
         this.speed = speed;
 
         this.dx = 1 * this.speed;
-        this.dy = 1 * this.speed;
+        this.dy = -1 * this.speed;  // Cambia la dirección vertical hacia arriba
     }
 
     draw(context) {
@@ -59,16 +75,16 @@ function getDistance(posX1, posY1, posX2, posY2) {
 }
 
 let circles = [
-    new Circle(100, 100, 50, "blue", "1", 4),
-    new Circle(250, 150, 20, "blue", "2", 4),
-    new Circle(300, 400, 70, "blue", "3", 5),
-    new Circle(500, 500, 90, "blue", "4", 7),
-    new Circle(390, 150, 40, "blue", "5", 9),
-    new Circle(180, 200, 50, "blue", "6", 11),
-    new Circle(400, 300, 70, "blue", "7", 13),
-    new Circle(222, 340, 100, "blue", "8", 15),
-    new Circle(340, 410, 64, "blue", "9", 17),
-    new Circle(450, 310, 87, "blue", "10", 19)
+    new Circle(Math.random() * window_width, Math.random() * window_height, 50, "blue", "1", 8),
+    new Circle(Math.random() * window_width, Math.random() * window_height, 20, "blue", "2", 4),
+    new Circle(Math.random() * window_width, Math.random() * window_height, 70, "blue", "3", 5),
+    new Circle(Math.random() * window_width, Math.random() * window_height, 90, "blue", "4", 7),
+    new Circle(Math.random() * window_width, Math.random() * window_height, 40, "blue", "5", 9),
+    new Circle(Math.random() * window_width, Math.random() * window_height, 50, "blue", "6", 11),
+    new Circle(Math.random() * window_width, Math.random() * window_height, 70, "blue", "7", 13),
+    new Circle(Math.random() * window_width, Math.random() * window_height, 100, "blue", "8", 15),
+    new Circle(Math.random() * window_width, Math.random() * window_height, 64, "blue", "9", 17),
+    new Circle(Math.random() * window_width, Math.random() * window_height, 87, "blue", "10", 19)
 ];
 
 function updateCircles() {
@@ -76,6 +92,7 @@ function updateCircles() {
     ctx.clearRect(0, 0, window_width, window_height);
     circles.forEach(circle => circle.update(ctx));
     checkCollisions();
+    drawTimer(); // Llama a la función para dibujar el cronómetro
 }
 
 function checkCollisions() {
@@ -105,4 +122,99 @@ function checkCollisions() {
     }
 }
 
-updateCircles();
+// Función para obtener las coordenadas del mouse dentro del canvas
+function getMousePos(canvas, evt) {
+    var rect = canvas.getBoundingClientRect();
+    mouseX = evt.clientX - rect.left;
+    mouseY = evt.clientY - rect.top;
+}
+
+// Manejador de eventos para detectar el movimiento del mouse
+canvas.addEventListener('mousemove', function(evt) {
+    getMousePos(canvas, evt);
+});
+
+// Manejador de eventos para detectar el clic del mouse
+canvas.addEventListener('mousedown', function(evt) {
+    clickX = evt.clientX - canvas.getBoundingClientRect().left;
+    clickY = evt.clientY - canvas.getBoundingClientRect().top;
+    isMouseClicked = true;
+});
+
+// Función para actualizar las coordenadas del mouse en el canvas
+function updateMouseCoordinates(context) {
+    context.font = "bold 15px cursive";
+    context.fillStyle = "black";
+    context.fillText(" X: " + mouseX, 25, 10); // Actualiza el texto con la coordenada X
+    context.fillText(" Y: " + mouseY, 25, 25); // Actualiza el texto con la coordenada Y
+
+    if (isMouseClicked) {
+        // Dibujar rectángulo desde la posición del clic hasta las coordenadas (1, 1)
+        context.strokeStyle = "red";
+        context.lineWidth = 2;
+        context.strokeRect(clickX, clickY, 1 - clickX, 1 - clickY);
+
+        isMouseClicked = false; // Reinicia la bandera de clic
+    }
+}
+
+// Llama a la función para actualizar las coordenadas del mouse en cada frame
+function drawMouseCoordinates() {
+    ctx.save(); // Guarda el estado del contexto
+    updateMouseCoordinates(ctx); // Actualiza las coordenadas del mouse
+    ctx.restore(); // Restaura el estado del contexto
+    requestAnimationFrame(drawMouseCoordinates); // Llama recursivamente a la función
+}
+
+// Manejador de eventos para detectar el clic del mouse
+canvas.addEventListener('mousedown', function(evt) {
+    clickX = evt.clientX - canvas.getBoundingClientRect().left;
+    clickY = evt.clientY - canvas.getBoundingClientRect().top;
+    console.log("Coordenadas del clic: X:", clickX, "Y:", clickY);
+    isMouseClicked = true;
+    checkCircleClick();
+});
+
+// Función para verificar si se hizo clic en un círculo
+function checkCircleClick() {
+    circles.forEach((circle, index) => {
+        const distance = getDistance(clickX, clickY, circle.posX, circle.posY);
+        if (distance < circle.radius) {
+            circle.color = "purple"; // Cambia el color del borde
+            ctx.fillStyle = "purple"; // Cambia el color de relleno
+            ctx.beginPath();
+            ctx.arc(circle.posX, circle.posY, circle.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.closePath();
+            console.log("Se hizo clic dentro del círculo", circle.text); // Mensaje en la consola
+            circles.splice(index, 1); // Elimina el círculo de la matriz de círculos
+            
+            // Detener el cronómetro si se hace clic en el último círculo
+            if (circles.length === 0) {
+                clearInterval(timerInterval);
+                console.log("Tiempo transcurrido: " + elapsedTime + " segundos");
+            }
+        }
+    });
+}
+
+// Función para iniciar el cronómetro
+function startTimer() {
+    startTime = Date.now();
+    timerInterval = setInterval(function() {
+        elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+    }, 1000);
+}
+
+// Función para dibujar el cronómetro
+function drawTimer() {
+    ctx.save();
+    ctx.font = "bold 20px Arial";
+    ctx.fillStyle = "black";
+    ctx.fillText("Tiempo: " + elapsedTime + " segundos", window_width - 150, 30);
+    ctx.restore();
+}
+
+startTimer(); // Inicia el cronómetro
+updateCircles(); // Llama a la función para actualizar los círculos
+drawMouseCoordinates(); // Llama a la función para dibujar las coordenadas del mouse
